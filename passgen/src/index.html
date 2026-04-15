@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PASS GEN 2.0</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0d;
+      --surface:   #141414;
+      --card:      #1a1a1a;
+      --border:    #2a2a2a;
+      --border2:   #3a3a3a;
+      --text:      #e8e8e8;
+      --muted:     #888;
+      --dim:       #555;
+      --green:     #22c55e;
+      --green-d:   #16a34a;
+      --green-dk:  #14532d;
+      --mono:      'Courier New', Courier, monospace;
+      --sans:      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --radius:    8px;
+      --radius-lg: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    .wrap { width: 100%; max-width: 680px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+    .title {
+      font-family: var(--mono);
+      font-size: 22px;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      font-weight: normal;
+    }
+    .title span { color: var(--green); }
+    .sub {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--dim);
+      margin-top: 4px;
+    }
+
+    /* ── Settings ── */
+    .settings-wrap { position: relative; }
+    .settings-btn {
+      width: 36px; height: 36px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .settings-btn:hover { border-color: var(--border2); background: var(--border); color: var(--text); }
+    .settings-btn.open  { border-color: var(--green-d); color: var(--green); }
+    .settings-btn svg   { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.35s; }
+    .settings-btn.open svg { transform: rotate(65deg); }
+
+    .settings-dd {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 210px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      z-index: 100;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+    }
+    .settings-dd.open { display: block; }
+    .sd-lbl {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 10px;
+      font-family: var(--mono);
+    }
+    .lang-row { display: flex; gap: 8px; }
+    .lang-btn {
+      flex: 1; padding: 8px 6px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      font-family: var(--mono);
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+    }
+    .lang-btn:hover { border-color: var(--border2); color: var(--text); }
+    .lang-btn.active { border-color: var(--green-d); background: var(--green-dk); color: var(--green); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      flex: 1; padding: 11px 16px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      cursor: pointer;
+      background: var(--surface); color: var(--muted);
+      border: none;
+      transition: background 0.15s, color 0.15s;
+      font-family: var(--sans);
+    }
+    .tab:not(:last-child) { border-right: 1px solid var(--border); }
+    .tab.active { background: var(--green-d); color: #fff; }
+    .tab:not(.active):hover { background: var(--card); color: var(--text); }
+
+    /* ── Panels ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Slider ── */
+    .row { display: flex; align-items: center; gap: 14px; margin-bottom: 1.25rem; }
+    .row-label { font-size: 13px; color: var(--muted); min-width: 64px; font-family: var(--mono); }
+    .slider-wrap { flex: 1; display: flex; align-items: center; gap: 12px; }
+
+    input[type="range"] {
+      -webkit-appearance: none; flex: 1;
+      height: 4px;
+      background: linear-gradient(to right, #22c55e 10%, #3a3a3a 10%);
+      border-radius: 2px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--green); cursor: pointer;
+      transition: transform 0.12s;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.18);
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.12); }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--green); border: none; cursor: pointer;
+    }
+    input[type="range"]::-moz-range-track { height: 4px; background: #3a3a3a; border-radius: 2px; }
+    input[type="range"]::-moz-range-progress { height: 4px; background: #22c55e; border-radius: 2px; }
+    .len-val {
+      font-family: var(--mono); font-size: 15px; font-weight: bold;
+      color: var(--green); min-width: 30px; text-align: right;
+    }
+
+    /* ── Toggles ── */
+    .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+    .tog {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 13px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); cursor: pointer; user-select: none;
+      transition: border-color 0.12s;
+    }
+    .tog:hover { border-color: var(--border2); }
+    .tog-lbl { font-size: 12px; font-family: var(--mono); color: var(--muted); }
+    .sw {
+      width: 36px; height: 20px; background: var(--border2);
+      border-radius: 10px; position: relative; flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .sw.on { background: var(--green-d); }
+    .sw::after {
+      content: ''; position: absolute;
+      width: 14px; height: 14px; background: #fff;
+      border-radius: 50%; top: 3px; left: 3px;
+      transition: left 0.15s;
+    }
+    .sw.on::after { left: 19px; }
+
+    /* ── Count ── */
+    .count-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
+    .cnt-btn {
+      width: 30px; height: 30px;
+      border: 1px solid var(--border2); border-radius: var(--radius);
+      background: var(--card); color: var(--text); font-size: 18px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      line-height: 1; flex-shrink: 0;
+      transition: background 0.12s; font-family: var(--sans);
+    }
+    .cnt-btn:hover { background: var(--border); }
+    .cnt-input {
+      font-family: var(--mono); font-size: 15px; font-weight: bold;
+      color: var(--text); background: var(--card);
+      border: 1px solid var(--border2); border-radius: var(--radius);
+      width: 64px; text-align: center; padding: 4px 6px;
+      outline: none; -moz-appearance: textfield;
+    }
+    .cnt-input::-webkit-outer-spin-button,
+    .cnt-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .cnt-input:focus { border-color: var(--green-d); }
+    .cnt-max { font-size: 11px; color: var(--dim); font-family: var(--mono); }
+
+    /* ── Generate button ── */
+    .gen-btn {
+      width: 100%; padding: 13px;
+      background: var(--green-d); color: #fff; border: none;
+      border-radius: var(--radius);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+      cursor: pointer; font-family: var(--sans);
+      transition: background 0.15s, transform 0.1s;
+    }
+    .gen-btn:hover { background: var(--green-dk); }
+    .gen-btn:active { transform: scale(0.99); }
+
+    /* ── Output ── */
+    #pg-out { margin-top: 1rem; }
+    .pw-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 7px;
+    }
+    .pw-text { font-family: var(--mono); font-size: 13px; color: var(--text); word-break: break-all; flex: 1; }
+    .pw-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .badge { font-size: 10px; padding: 3px 8px; border-radius: 5px; font-weight: 600; white-space: nowrap; letter-spacing: 0.04em; }
+    .b-ex { background: #14532d; color: #86efac; }
+    .b-st { background: #065f46; color: #6ee7b7; }
+    .b-go { background: #713f12; color: #fde68a; }
+    .b-wk { background: #7f1d1d; color: #fca5a5; }
+    .pw-bits { font-size: 10px; color: var(--dim); font-family: var(--mono); white-space: nowrap; }
+    .copy-btn {
+      font-size: 10px; color: var(--muted);
+      background: transparent; border: 1px solid var(--border2);
+      border-radius: 5px; padding: 4px 10px; cursor: pointer; white-space: nowrap;
+      font-family: var(--sans); transition: border-color 0.12s, color 0.12s;
+    }
+    .copy-btn:hover { border-color: var(--green-d); color: var(--green); }
+
+    /* ── Analysis ── */
+    .ana-input {
+      width: 100%; font-family: var(--mono); font-size: 14px;
+      padding: 12px 14px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      margin-bottom: 1rem; outline: none; transition: border-color 0.15s;
+    }
+    .ana-input:focus { border-color: var(--green-d); }
+    .ana-input::placeholder { color: var(--dim); }
+    .str-bar { height: 5px; background: var(--border); border-radius: 3px; margin-bottom: .75rem; overflow: hidden; }
+    .str-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background 0.3s; width: 0%; }
+    .str-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+    .str-lbl  { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .str-bits { font-size: 11px; font-family: var(--mono); color: var(--dim); }
+    .char-bar { display: flex; gap: 4px; height: 7px; margin-bottom: .85rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: .75rem; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+    .stat-lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+    .stat-val { font-size: 16px; font-weight: bold; color: var(--text); font-family: var(--mono); }
+    .crack-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: .75rem; }
+    .pat-item { font-size: 12px; color: #f87171; padding: 3px 0; display: flex; align-items: center; gap: 7px; }
+    .pat-ok   { font-size: 12px; color: var(--green); padding: 3px 0; display: flex; align-items: center; gap: 7px; }
+
+    /* ── Feedback ── */
+    .fb-field { margin-bottom: 1.1rem; }
+    .fb-label {
+      display: block;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--dim); font-family: var(--mono);
+      margin-bottom: 7px;
+    }
+    .fb-input {
+      width: 100%; font-family: var(--sans); font-size: 14px;
+      padding: 10px 13px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      outline: none; transition: border-color 0.15s;
+    }
+    .fb-input:focus { border-color: var(--green-d); }
+    .fb-input::placeholder { color: var(--dim); }
+
+    textarea.fb-input {
+      resize: vertical;
+      min-height: 100px;
+      max-height: 260px;
+      line-height: 1.6;
+    }
+
+    /* Stars */
+    .stars { display: flex; gap: 6px; }
+    .star {
+      font-size: 28px;
+      cursor: pointer;
+      color: var(--border2);
+      transition: color 0.12s, transform 0.1s;
+      line-height: 1;
+      user-select: none;
+    }
+    .star:hover, .star.on { color: #eab308; }
+    .star:hover { transform: scale(1.15); }
+
+    /* Submit */
+    .fb-submit {
+      width: 100%; padding: 13px;
+      background: var(--green-d); color: #fff; border: none;
+      border-radius: var(--radius);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+      cursor: pointer; font-family: var(--sans);
+      transition: background 0.15s, transform 0.1s, opacity 0.15s;
+      margin-top: 0.25rem;
+    }
+    .fb-submit:hover:not(:disabled) { background: var(--green-dk); }
+    .fb-submit:active:not(:disabled) { transform: scale(0.99); }
+    .fb-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Toast */
+    .fb-toast {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 15px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      margin-top: 1rem;
+    }
+    .fb-toast.success { background: var(--green-dk); color: #86efac; border: 1px solid #166534; display: flex; }
+    .fb-toast.error   { background: #450a0a;         color: #fca5a5; border: 1px solid #7f1d1d; display: flex; }
+    .fb-toast-icon { font-size: 16px; flex-shrink: 0; }
+    .fb-err-hint { font-size: 11px; color: #f87171; margin-top: 5px; font-family: var(--mono); display: none; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="title">PASS GEN <span>2.0</span></div>
+      <div class="sub">Made by @MysteryousFox</div>
+    </div>
+
+    <div class="settings-wrap">
+      <button class="settings-btn" id="settings-btn" onclick="toggleSettings()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <div class="settings-dd" id="settings-dd">
+        <div class="sd-lbl" data-i18n="sd_lang">Language</div>
+        <div class="lang-row">
+          <button class="lang-btn active" id="lang-en" onclick="setLang('en')">🇬🇧 EN</button>
+          <button class="lang-btn"        id="lang-ru" onclick="setLang('ru')">🇷🇺 RU</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('gen')" data-i18n="tab_gen">Generator</button>
+    <button class="tab"        onclick="switchTab('ana')" data-i18n="tab_ana">Analysis</button>
+    <button class="tab"        onclick="switchTab('fb')"  data-i18n="tab_fb">Feedback</button>
+  </div>
+
+  <!-- ══ GENERATOR ══ -->
+  <div id="tab-gen" class="panel active">
+    <div class="card">
+      <div class="row">
+        <span class="row-label" data-i18n="lbl_length">Length</span>
+        <div class="slider-wrap">
+          <input type="range" id="lslider" min="8" max="128" value="16" step="1" oninput="upLen()">
+          <span class="len-val" id="lval">16</span>
+        </div>
+      </div>
+      <div class="toggles">
+        <div class="tog" onclick="togOpt('upper')">
+          <span class="tog-lbl" data-i18n="tog_upper">Uppercase A-Z</span>
+          <div class="sw on" id="sw-upper"></div>
+        </div>
+        <div class="tog" onclick="togOpt('lower')">
+          <span class="tog-lbl" data-i18n="tog_lower">Lowercase a-z</span>
+          <div class="sw on" id="sw-lower"></div>
+        </div>
+        <div class="tog" onclick="togOpt('digits')">
+          <span class="tog-lbl" data-i18n="tog_digits">Digits 0-9</span>
+          <div class="sw on" id="sw-digits"></div>
+        </div>
+        <div class="tog" onclick="togOpt('symbols')">
+          <span class="tog-lbl" data-i18n="tog_symbols">Symbols !@#...</span>
+          <div class="sw on" id="sw-symbols"></div>
+        </div>
+        <div class="tog" onclick="togOpt('nosim')">
+          <span class="tog-lbl" data-i18n="tog_nosim">Exclude similar</span>
+          <div class="sw" id="sw-nosim"></div>
+        </div>
+        <div class="tog" onclick="togOpt('noamb')">
+          <span class="tog-lbl" data-i18n="tog_noamb">Exclude ambiguous</span>
+          <div class="sw" id="sw-noamb"></div>
+        </div>
+      </div>
+      <div class="count-row">
+        <span class="row-label" data-i18n="lbl_count">Count</span>
+        <button class="cnt-btn" onclick="adjCnt(-1)">−</button>
+        <input class="cnt-input" type="number" id="cval" value="1" min="1" max="100" oninput="clampCnt()" onblur="fixCnt()">
+        <button class="cnt-btn" onclick="adjCnt(1)">+</button>
+        <span class="cnt-max" data-i18n="lbl_max">max 100</span>
+      </div>
+      <button class="gen-btn" onclick="generate()" data-i18n="btn_generate">Generate</button>
+    </div>
+    <div id="pg-out"></div>
+  </div>
+
+  <!-- ══ ANALYSIS ══ -->
+  <div id="tab-ana" class="panel">
+    <div class="card">
+      <input class="ana-input" type="text" id="ainput" oninput="analyze()" spellcheck="false" autocomplete="off" data-i18n-ph="ana_ph">
+      <div class="str-bar"><div class="str-fill" id="sf"></div></div>
+      <div class="str-info">
+        <span class="str-lbl" id="slabel" data-i18n="ana_empty">Enter a password</span>
+        <span class="str-bits" id="sbits"></span>
+      </div>
+      <div class="char-bar" id="cb"></div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-lbl" data-i18n="stat_entropy">Entropy</div>
+          <div class="stat-val" id="s-ent">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl" data-i18n="stat_charset">Charset</div>
+          <div class="stat-val" id="s-cs">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl" data-i18n="stat_length">Length</div>
+          <div class="stat-val" id="s-len">—</div>
+        </div>
+      </div>
+      <div class="crack-card">
+        <div class="stat-lbl" data-i18n="stat_crack">Crack time (10⁹ guesses/sec)</div>
+        <div class="stat-val" id="s-crack" style="font-size:14px;margin-top:4px">—</div>
+      </div>
+      <div id="pg-pat"></div>
+    </div>
+  </div>
+
+  <!-- ══ FEEDBACK ══ -->
+  <div id="tab-fb" class="panel">
+    <div class="card">
+
+      <!-- Name -->
+      <div class="fb-field">
+        <label class="fb-label" data-i18n="fb_name_lbl">Name / Nickname</label>
+        <input class="fb-input" type="text" id="fb-name" maxlength="60" data-i18n-ph="fb_name_ph" autocomplete="off">
+      </div>
+
+      <!-- Rating -->
+      <div class="fb-field">
+        <label class="fb-label" data-i18n="fb_rating_lbl">Rating</label>
+        <div class="stars" id="stars">
+          <span class="star" data-v="1">★</span>
+          <span class="star" data-v="2">★</span>
+          <span class="star" data-v="3">★</span>
+          <span class="star" data-v="4">★</span>
+          <span class="star" data-v="5">★</span>
+        </div>
+        <div class="fb-err-hint" id="err-rating" data-i18n="fb_err_rating">Please select a rating</div>
+      </div>
+
+      <!-- Message -->
+      <div class="fb-field">
+        <label class="fb-label" data-i18n="fb_msg_lbl">Feedback</label>
+        <textarea class="fb-input" id="fb-msg" maxlength="1000" rows="4" data-i18n-ph="fb_msg_ph"></textarea>
+        <div class="fb-err-hint" id="err-msg" data-i18n="fb_err_msg">Please write something</div>
+      </div>
+
+      <button class="fb-submit" id="fb-submit" onclick="submitFeedback()" data-i18n="fb_btn">Send Feedback</button>
+
+      <div class="fb-toast" id="fb-toast">
+        <span class="fb-toast-icon" id="fb-toast-icon"></span>
+        <span id="fb-toast-text"></span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   Supabase config
+═══════════════════════════════════════════ */
+const SB_URL = 'https://hxpviqmpnhwsspxhacwu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4cHZpcW1wbmh3c3NweGhhY3d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMTk2NTMsImV4cCI6MjA5MTY5NTY1M30.vjNyNdDnNAwVOeZ01dGvbJRJgTej1Fjtk0W6qYxn2cY';
+
+async function sbInsert(table, row) {
+  const res = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(row)
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+/* ═══════════════════════════════════════════
+   i18n
+═══════════════════════════════════════════ */
+const I18N = {
+  en: {
+    tab_gen:'Generator', tab_ana:'Analysis', tab_fb:'Feedback',
+    lbl_length:'Length', lbl_count:'Count', lbl_max:'max 100',
+    tog_upper:'Uppercase A-Z', tog_lower:'Lowercase a-z',
+    tog_digits:'Digits 0-9', tog_symbols:'Symbols !@#...',
+    tog_nosim:'Exclude similar', tog_noamb:'Exclude ambiguous',
+    btn_generate:'Generate',
+    ana_ph:'Enter a password to analyze...',
+    ana_empty:'Enter a password',
+    stat_entropy:'Entropy', stat_charset:'Charset',
+    stat_length:'Length', stat_crack:'Crack time (10⁹ guesses/sec)',
+    sd_lang:'Language',
+    s_vweak:'Very Weak', s_weak:'Weak', s_good:'Good',
+    s_strong:'Strong', s_excellent:'Excellent',
+    copy:'Copy', copied:'Copied!', bits:'bit',
+    w_short:'Too short (under 8 characters)',
+    w_repeat:'Repeated characters detected',
+    w_seq:'Character sequence detected',
+    w_letters:'Letters only — add digits or symbols',
+    w_digits:'Digits only — add letters',
+    w_common:'Common word detected',
+    ok:'No significant issues found',
+    ct_instant:'instant', ct_sec:' sec', ct_min:' min', ct_hr:' hr',
+    ct_days:' days', ct_yrs:' years', ct_kyrs:' thousand yrs',
+    ct_myrs:' million yrs', ct_byrs:' billion yrs',
+    /* feedback */
+    fb_name_lbl:'Name / Nickname',
+    fb_name_ph:'Anonymous',
+    fb_rating_lbl:'Rating',
+    fb_msg_lbl:'Feedback',
+    fb_msg_ph:'Share your thoughts about the app...',
+    fb_btn:'Send Feedback',
+    fb_err_rating:'Please select a rating',
+    fb_err_msg:'Please write something',
+    fb_ok:'Thank you! Your feedback has been sent.',
+    fb_err:'Something went wrong. Please try again.',
+    fb_sending:'Sending...',
+  },
+  ru: {
+    tab_gen:'Генератор', tab_ana:'Анализ', tab_fb:'Обратная связь',
+    lbl_length:'Длина', lbl_count:'Кол-во', lbl_max:'макс. 100',
+    tog_upper:'Заглавные A-Z', tog_lower:'Строчные a-z',
+    tog_digits:'Цифры 0-9', tog_symbols:'Символы !@#...',
+    tog_nosim:'Без похожих', tog_noamb:'Без неоднозначных',
+    btn_generate:'Сгенерировать',
+    ana_ph:'Введите пароль для анализа...',
+    ana_empty:'Введите пароль',
+    stat_entropy:'Энтропия', stat_charset:'Алфавит',
+    stat_length:'Длина', stat_crack:'Время взлома (10⁹ попыток/сек)',
+    sd_lang:'Язык',
+    s_vweak:'Очень слабый', s_weak:'Слабый', s_good:'Хороший',
+    s_strong:'Сильный', s_excellent:'Отличный',
+    copy:'Копировать', copied:'Скопировано!', bits:'бит',
+    w_short:'Слишком короткий (менее 8 символов)',
+    w_repeat:'Повторяющиеся символы подряд',
+    w_seq:'Обнаружена последовательность символов',
+    w_letters:'Только буквы — добавьте цифры или символы',
+    w_digits:'Только цифры — добавьте буквы',
+    w_common:'Обнаружено распространённое слово',
+    ok:'Серьёзных проблем не обнаружено',
+    ct_instant:'мгновенно', ct_sec:' сек', ct_min:' мин', ct_hr:' ч',
+    ct_days:' дней', ct_yrs:' лет', ct_kyrs:' тыс. лет',
+    ct_myrs:' млн лет', ct_byrs:' млрд лет',
+    /* feedback */
+    fb_name_lbl:'Имя / Никнейм',
+    fb_name_ph:'Аноним',
+    fb_rating_lbl:'Оценка',
+    fb_msg_lbl:'Отзыв',
+    fb_msg_ph:'Поделитесь впечатлениями о приложении...',
+    fb_btn:'Отправить отзыв',
+    fb_err_rating:'Пожалуйста, выберите оценку',
+    fb_err_msg:'Напишите что-нибудь',
+    fb_ok:'Спасибо! Ваш отзыв отправлен.',
+    fb_err:'Что-то пошло не так. Попробуйте ещё раз.',
+    fb_sending:'Отправка...',
+  }
+};
+
+let lang = (() => {
+  try {
+    const raw = localStorage.getItem('passgen_settings');
+    if (raw) { const p = JSON.parse(raw); if (p.lang && I18N[p.lang]) return p.lang; }
+  } catch (_) {}
+  return 'en';
+})();
+const t = k => I18N[lang][k] || k;
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  document.getElementById('lang-ru').classList.toggle('active', lang === 'ru');
+  if (lastPasswords.length) renderOutput();
+  const pw = document.getElementById('ainput').value;
+  if (pw) analyze(); else document.getElementById('slabel').textContent = t('ana_empty');
+}
+
+function saveLangPref(l) {
+  try { localStorage.setItem('passgen_settings', JSON.stringify({ lang: l })); } catch (_) {}
+}
+
+function setLang(l) { lang = l; saveLangPref(l); applyLang(); closeSettings(); }
+
+/* ═══════════════════════════════════════════
+   Settings dropdown
+═══════════════════════════════════════════ */
+function toggleSettings() {
+  document.getElementById('settings-btn').classList.toggle('open');
+  document.getElementById('settings-dd').classList.toggle('open');
+}
+function closeSettings() {
+  document.getElementById('settings-btn').classList.remove('open');
+  document.getElementById('settings-dd').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!document.querySelector('.settings-wrap').contains(e.target)) closeSettings();
+});
+
+/* ═══════════════════════════════════════════
+   Tabs
+═══════════════════════════════════════════ */
+const TAB_IDS = ['gen', 'ana', 'fb'];
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((el, i) =>
+    el.classList.toggle('active', TAB_IDS[i] === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+/* ═══════════════════════════════════════════
+   Generator
+═══════════════════════════════════════════ */
+const CH = {
+  U: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  L: 'abcdefghijklmnopqrstuvwxyz',
+  D: '0123456789',
+  S: '!@#$%^&*()-_=+[];:,.<>?/~`'
+};
+const st = { upper:true, lower:true, digits:true, symbols:true, nosim:false, noamb:false, len:16 };
+let lastPasswords = [];
+
+function updateSliderFill() {
+  const s = document.getElementById('lslider');
+  const pct = ((+s.value - +s.min) / (+s.max - +s.min)) * 100;
+  s.style.background = `linear-gradient(to right, #22c55e ${pct}%, #3a3a3a ${pct}%)`;
+}
+function upLen() {
+  st.len = parseInt(document.getElementById('lslider').value);
+  document.getElementById('lval').textContent = st.len;
+  updateSliderFill();
+}
+function togOpt(o) {
+  const cores = ['upper','lower','digits','symbols'];
+  if (cores.includes(o)) {
+    if (!st[o] || cores.filter(x => x !== o && st[x]).length > 0) {
+      st[o] = !st[o];
+      document.getElementById('sw-' + o).classList.toggle('on', st[o]);
+    }
+  } else {
+    st[o] = !st[o];
+    document.getElementById('sw-' + o).classList.toggle('on', st[o]);
+  }
+}
+function adjCnt(d) {
+  const el = document.getElementById('cval');
+  el.value = Math.max(1, Math.min(100, (parseInt(el.value) || 1) + d));
+}
+function clampCnt() {
+  const el = document.getElementById('cval'), v = parseInt(el.value);
+  if (!isNaN(v) && v > 100) el.value = 100;
+  if (!isNaN(v) && v < 1)   el.value = 1;
+}
+function fixCnt() {
+  const el = document.getElementById('cval'), v = parseInt(el.value);
+  el.value = (isNaN(v) || v < 1) ? 1 : v > 100 ? 100 : v;
+}
+function buildCS() {
+  let cs = '';
+  if (st.upper)   cs += CH.U;
+  if (st.lower)   cs += CH.L;
+  if (st.digits)  cs += CH.D;
+  if (st.symbols) cs += CH.S;
+  if (st.nosim)   cs = cs.replace(/[il1Lo0O]/g, '');
+  if (st.noamb)   cs = cs.replace(/[{}[\]()/\\'"`~,;:<>]/g, '');
+  return cs;
+}
+function genOne() {
+  const cs = buildCS();
+  if (!cs) return '';
+  const arr = new Uint32Array(st.len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(v => cs[v % cs.length]).join('');
+}
+function entropy(pw) {
+  let cs = 0;
+  if (/[A-Z]/.test(pw)) cs += 26;
+  if (/[a-z]/.test(pw)) cs += 26;
+  if (/[0-9]/.test(pw)) cs += 10;
+  if (/[^a-zA-Z0-9]/.test(pw)) cs += 32;
+  return cs > 0 ? Math.round(pw.length * Math.log2(cs)) : 0;
+}
+function strength(b) {
+  if (b < 40)  return { lbl: t('s_vweak'),    cls:'b-wk', col:'#ef4444', pct: Math.round(b/40*20) };
+  if (b < 60)  return { lbl: t('s_weak'),     cls:'b-wk', col:'#f97316', pct: Math.round(20+(b-40)/20*20) };
+  if (b < 80)  return { lbl: t('s_good'),     cls:'b-go', col:'#eab308', pct: Math.round(40+(b-60)/20*20) };
+  if (b < 100) return { lbl: t('s_strong'),   cls:'b-st', col:'#22c55e', pct: Math.round(60+(b-80)/20*20) };
+  return        { lbl: t('s_excellent'), cls:'b-ex', col:'#16a34a', pct: Math.min(100, Math.round(80+(b-100)/50*20)) };
+}
+function pwHTML(pw) {
+  const b = entropy(pw), s = strength(b);
+  const esc = pw.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const htm = pw.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  return `<div class="pw-item">
+    <span class="pw-text">${htm}</span>
+    <div class="pw-meta">
+      <span class="badge ${s.cls}">${s.lbl}</span>
+      <span class="pw-bits">${b} ${t('bits')}</span>
+      <button class="copy-btn" onclick="cp(this,'${esc}')">${t('copy')}</button>
+    </div>
+  </div>`;
+}
+function generate() {
+  const cnt = Math.max(1, Math.min(100, parseInt(document.getElementById('cval').value) || 1));
+  document.getElementById('cval').value = cnt;
+  lastPasswords = Array.from({ length: cnt }, genOne);
+  renderOutput();
+}
+function renderOutput() {
+  document.getElementById('pg-out').innerHTML = lastPasswords.map(pwHTML).join('');
+}
+function cp(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = t('copied');
+    btn.style.color = '#22c55e'; btn.style.borderColor = '#16a34a';
+    setTimeout(() => { btn.textContent = t('copy'); btn.style.color = ''; btn.style.borderColor = ''; }, 1400);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   Analysis
+═══════════════════════════════════════════ */
+function crackTime(b) {
+  const s = Math.pow(2, b) / 1e9 / 2;
+  if (s < 1)        return t('ct_instant');
+  if (s < 60)       return Math.round(s) + t('ct_sec');
+  if (s < 3600)     return Math.round(s/60) + t('ct_min');
+  if (s < 86400)    return Math.round(s/3600) + t('ct_hr');
+  if (s < 31536000) return Math.round(s/86400) + t('ct_days');
+  if (s < 3.15e10)  return Math.round(s/31536000) + t('ct_yrs');
+  if (s < 3.15e13)  return Math.round(s/3.15e10) + t('ct_kyrs');
+  if (s < 3.15e16)  return Math.round(s/3.15e13) + t('ct_myrs');
+  return Math.round(s/3.15e16) + t('ct_byrs');
+}
+function analyze() {
+  const pw = document.getElementById('ainput').value;
+  const b = entropy(pw), s = strength(b);
+  const sf = document.getElementById('sf');
+  sf.style.width = pw ? s.pct+'%' : '0%';
+  sf.style.background = s.col;
+  const lbl = document.getElementById('slabel');
+  lbl.textContent = pw ? s.lbl : t('ana_empty');
+  lbl.style.color = pw ? s.col : '';
+  document.getElementById('sbits').textContent = pw ? b+' '+t('bits') : '';
+  let cs = 0;
+  if (/[A-Z]/.test(pw)) cs+=26; if (/[a-z]/.test(pw)) cs+=26;
+  if (/[0-9]/.test(pw)) cs+=10; if (/[^a-zA-Z0-9]/.test(pw)) cs+=32;
+  document.getElementById('s-ent').textContent   = pw ? b+' '+t('bits') : '—';
+  document.getElementById('s-cs').textContent    = pw ? cs : '—';
+  document.getElementById('s-len').textContent   = pw ? pw.length : '—';
+  document.getElementById('s-crack').textContent = pw ? crackTime(b) : '—';
+  const cb = document.getElementById('cb');
+  if (pw) {
+    const uc=(pw.match(/[A-Z]/g)||[]).length, lc=(pw.match(/[a-z]/g)||[]).length,
+          dc=(pw.match(/[0-9]/g)||[]).length, sc=pw.length-uc-lc-dc;
+    cb.innerHTML=[{n:uc,c:'#3b82f6'},{n:lc,c:'#22c55e'},{n:dc,c:'#f59e0b'},{n:sc,c:'#ec4899'}]
+      .map(x=>x.n>0?`<div style="flex:${x.n};background:${x.c};height:7px;border-radius:2px"></div>`:'')
+      .join('');
+  } else cb.innerHTML='';
+  const warns=[];
+  if (pw) {
+    if (pw.length<8) warns.push(t('w_short'));
+    if (/(.)\1{2,}/.test(pw)) warns.push(t('w_repeat'));
+    if (/(?:012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi)/i.test(pw)) warns.push(t('w_seq'));
+    if (/^[a-zA-Z]+$/.test(pw)) warns.push(t('w_letters'));
+    if (/^[0-9]+$/.test(pw))    warns.push(t('w_digits'));
+    if (/password|пароль|qwerty|123456|letmein|admin/i.test(pw)) warns.push(t('w_common'));
+  }
+  const pat=document.getElementById('pg-pat');
+  if (!pw) { pat.innerHTML=''; return; }
+  pat.innerHTML = warns.length
+    ? warns.map(w=>`<div class="pat-item"><span style="font-size:14px">✕</span>${w}</div>`).join('')
+    : `<div class="pat-ok"><span style="font-size:14px">✓</span>${t('ok')}</div>`;
+}
+
+/* ═══════════════════════════════════════════
+   Feedback — stars
+═══════════════════════════════════════════ */
+let fbRating = 0;
+
+document.getElementById('stars').addEventListener('mouseover', e => {
+  if (!e.target.classList.contains('star')) return;
+  const v = +e.target.dataset.v;
+  document.querySelectorAll('.star').forEach(s => s.classList.toggle('on', +s.dataset.v <= v));
+});
+document.getElementById('stars').addEventListener('mouseout', () => {
+  document.querySelectorAll('.star').forEach(s => s.classList.toggle('on', +s.dataset.v <= fbRating));
+});
+document.getElementById('stars').addEventListener('click', e => {
+  if (!e.target.classList.contains('star')) return;
+  fbRating = +e.target.dataset.v;
+  document.querySelectorAll('.star').forEach(s => s.classList.toggle('on', +s.dataset.v <= fbRating));
+  document.getElementById('err-rating').style.display = 'none';
+});
+
+/* ═══════════════════════════════════════════
+   Feedback — submit
+═══════════════════════════════════════════ */
+async function submitFeedback() {
+  const name    = document.getElementById('fb-name').value.trim();
+  const message = document.getElementById('fb-msg').value.trim();
+
+  /* Validate */
+  let valid = true;
+  if (!fbRating) {
+    document.getElementById('err-rating').style.display = 'block';
+    document.getElementById('err-rating').textContent = t('fb_err_rating');
+    valid = false;
+  }
+  if (!message) {
+    document.getElementById('err-msg').style.display = 'block';
+    document.getElementById('err-msg').textContent = t('fb_err_msg');
+    valid = false;
+  }
+  if (!valid) return;
+
+  const btn   = document.getElementById('fb-submit');
+  const toast = document.getElementById('fb-toast');
+
+  btn.disabled = true;
+  btn.textContent = t('fb_sending');
+  toast.className = 'fb-toast';
+
+  try {
+    await sbInsert('feedback', {
+      name:    name || null,
+      rating:  fbRating,
+      message: message
+    });
+
+    /* Success */
+    toast.className = 'fb-toast success';
+    document.getElementById('fb-toast-icon').textContent = '✓';
+    document.getElementById('fb-toast-text').textContent = t('fb_ok');
+
+    /* Reset form */
+    document.getElementById('fb-name').value = '';
+    document.getElementById('fb-msg').value  = '';
+    fbRating = 0;
+    document.querySelectorAll('.star').forEach(s => s.classList.remove('on'));
+    btn.textContent = t('fb_btn');
+    btn.disabled = false;
+
+  } catch (err) {
+    toast.className = 'fb-toast error';
+    document.getElementById('fb-toast-icon').textContent = '✕';
+    document.getElementById('fb-toast-text').textContent = t('fb_err');
+    btn.textContent = t('fb_btn');
+    btn.disabled = false;
+  }
+}
+
+/* hide inline errors on input */
+document.getElementById('fb-msg').addEventListener('input', () => {
+  document.getElementById('err-msg').style.display = 'none';
+});
+
+/* init slider fill and apply saved language */
+updateSliderFill();
+applyLang();
+</script>
+</body>
+</html>
